@@ -283,6 +283,7 @@ struct source_view *source_view_create(char *path)
 	GtkTreeIter iter;
 	GError *err;
 
+	char *font_name;
 	struct tag *t;
 	size_t size;
 
@@ -374,8 +375,8 @@ struct source_view *source_view_create(char *path)
 	sv->text_widget = gtk_text_view_new();
 	gtk_container_add(GTK_CONTAINER(scroll_text), sv->text_widget);
 
-	//font_desc = pango_font_description_from_string("monospace 10");
-	font_desc = pango_font_description_from_string("Droid Sans Mono 11");
+	font_name = getenv("GSCOPE_SOURCE_FONT");
+	font_desc = pango_font_description_from_string(font_name ? : "Droid Sans Mono 11");
 	gtk_widget_modify_font(sv->text_widget, font_desc);
 	pango_font_description_free(font_desc);
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(sv->text_widget), FALSE);
