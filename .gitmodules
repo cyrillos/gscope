@@ -1,0 +1,3 @@
+[submodule "scritps/nmk"]
+	path = scritps/nmk
+	url = https://github.com/cyrillos/nmk.git
