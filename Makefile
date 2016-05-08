@@ -1,131 +1,76 @@
 #
-# Trivial makefile for gScope
-#
+# Import the build engine first
+__nmk_dir=$(CURDIR)/scripts/nmk/scripts/
+export __nmk_dir
 
-ifeq ($(strip $(V)),)
-	E = @echo
-	Q = @
+include $(__nmk_dir)/include.mk
+include $(__nmk_dir)/macro.mk
+
+SRC_DIR	:= $(CURDIR)
+export SRC_DIR
+
+PROGRAM		:= gscope
+
+DEFINES		+= -D_FILE_OFFSET_BITS=64
+DEFINES		+= -D_GNU_SOURCE
+
+ifneq ($(WERROR),0)
+        WARNINGS	+= -Werror
+endif
+
+ifeq ($(DEBUG),1)
+        DEFINES		+= -DCR_DEBUG
+        CFLAGS		+= -O0 -ggdb3
 else
-	E = @\#
-	Q =
-endif
-export E Q
-
-PROGRAM	= gscope
-FIND = find
-MKID = mkid
-CSCOPE = cscope
-
-uname_M      := $(shell uname -m | sed -e s/i.86/i386/)
-ifeq ($(uname_M),i386)
-DEFINES      += -DCONFIG_X86_32
-ifeq ($(uname_M),x86_64)
-DEFINES      += -DCONFIG_X86_64
-endif
+        CFLAGS		+= -O2 -g
 endif
 
-GTK_CFLAGS = `pkg-config --cflags gtk+-2.0 gtksourceview-2.0`
-GTK_LIBS = `pkg-config --libs gtk+-2.0 gtksourceview-2.0`
+CFLAGS		+= $(WARNINGS) $(DEFINES)
 
-GTK_CFLAGS += `pkg-config --cflags pango`
-GTK_LIBS += `pkg-config --libs pango`
+CFLAGS		+= $(shell pkg-config --cflags gtk+-2.0 gtksourceview-2.0)
+CFLAGS		+= $(shell pkg-config --cflags pango)
+CFLAGS		+= -DGTK_DISABLE_DEPRECATED
+CFLAGS		+= -iquote $(SRC_DIR)/include
 
-CFLAGS	+= $(CPPFLAGS) $(DEFINES) $(GTK_CFLAGS) -I.
+export CFLAGS
 
-WARNINGS += -Wall
-WARNINGS += -Wcast-align
-WARNINGS += -Wformat=2
-WARNINGS += -Winit-self
-WARNINGS += -Wmissing-declarations
-WARNINGS += -Wmissing-prototypes
-WARNINGS += -Wnested-externs
-WARNINGS += -Wno-system-headers
-WARNINGS += -Wold-style-definition
-WARNINGS += -Wredundant-decls
-WARNINGS += -Wsign-compare
-WARNINGS += -Wstrict-prototypes
-WARNINGS += -Wundef
-WARNINGS += -Wvolatile-register-var
-WARNINGS += -Wwrite-strings
+LIBS		+= $(shell pkg-config --libs gtk+-2.0 gtksourceview-2.0)
+LIBS		+= $(shell pkg-config --libs pango)
+LIBS		+= -lc -pthread
 
-CFLAGS	+= $(WARNINGS)
+export LIBS
 
-GCCOPT	+= -ggdb3
-#GCCOPT	+= -O2
-#-std=c99 -pedantic
-GCCOPT	+= -DGTK_DISABLE_DEPRECATED
+$(eval $(call gen-built-in,src))
 
-CFLAGS	+= $(GCCOPT)
-
-LIBS	+= $(GTK_LIBS) -lc -pthread
-
-OBJS	+= backend-proto.o
-OBJS	+= cscope.o
-OBJS	+= id-utils.o
-OBJS	+= tags.o
-OBJS	+= main.o
-OBJS	+= notebook.o
-OBJS	+= queries.o
-OBJS	+= sourceview.o
-OBJS	+= util.o
-OBJS	+= view.o
-OBJS	+= config.o
-OBJS	+= mark.o
+$(PROGRAM): src/built-in.o
+	$(E) "  LINK    " $@
+	$(Q) $(CC) $(LIBS) src/built-in.o -o $@
 
 all: $(PROGRAM)
-
-$(PROGRAM): $(OBJS)
-	$(E) "  LINK    " $@
-	$(Q) $(CC) $(LIBS) $(OBJS) -o $@
-
-$(OBJS):
-%.o: %.c
-	$(E) "  CC      " $@
-	$(Q) $(CC) -c $(CFLAGS) $< -o $@
+	@true
+.PHONY: all
 
 clean:
-	$(E) " CLEAN *.o"
-	$(Q) rm -f ./*.o
-	$(E) " CLEAN $(PROGRAM)"
-	$(Q) rm -f ./$(PROGRAM)
-	$(Q) rm -f ./tags ./TAGS
-
-TAGS:
-	$(RM) -f TAGS
-	$(FIND) . -name '*.[hcS]' -print | xargs etags -a
+	$(Q) $(MAKE) $(build)=src $@
+	$(Q) $(RM) $(PROGRAM)
+.PHONY: clean
 
 tags:
-	$(RM) -f tags
-	$(FIND) . -name '*.[hcS]' -print | xargs ctags -a
+	$(call msg-gen, $@)
+	$(Q) $(RM) tags
+	$(Q) $(FIND) . -name '*.[hcS]' ! -path './.*' ! -path './test/*' -print | xargs $(CTAGS) -a
+.PHONY: tags
+
+etags:
+	$(call msg-gen, $@)
+	$(Q) $(RM) TAGS
+	$(Q) $(FIND) . -name '*.[hcS]' ! -path './.*' ! -path './test/*' -print | xargs $(ETAGS) -a
+.PHONY: etags
 
 cscope:
-	$(FIND) . -name '*.[hcS]' -print > cscope.files
-	$(CSCOPE) -bkqu
+	$(call msg-gen, $@)
+	$(Q) $(FIND) . -name '*.[hcS]' ! -path './.*' ! -path './test/*' ! -type l -print > cscope.files
+	$(Q) $(CSCOPE) -bkqu
+.PHONY: cscope
 
-id:
-	$(FIND) . -name '*.[hcS]' -print | $(MKID)
-
-.PHONY: TAGS tags clean cscope id
-# DO NOT DELETE THIS LINE -- mkdep uses it.
-# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
-
-backend-proto.o: backend-proto.c backend-proto.h list.h util.h
-config.o: config.c util.h
-cscope.o: cscope.c cscope.h list.h backend-proto.h util.h
-id-utils.o: id-utils.c id-utils.h list.h backend-proto.h util.h
-main.o: main.c main.h view.h id-utils.h list.h cscope.h queries.h \
- backend-proto.h notebook.h tags.h sourceview.h util.h \
- img/gScope-32.png.img
-notebook.o: notebook.c notebook.h list.h util.h sourceview.h \
- backend-proto.h
-queries.o: queries.c queries.h list.h backend-proto.h notebook.h tags.h \
- id-utils.h cscope.h view.h sourceview.h util.h
-sourceview.o: sourceview.c sourceview.h list.h tags.h backend-proto.h \
- util.h queries.h notebook.h id-utils.h cscope.h view.h
-tags.o: tags.c tags.h list.h backend-proto.h util.h
-util.o: util.c util.h
-version.o: version.c
-view.o: view.c view.h id-utils.h list.h cscope.h queries.h \
- backend-proto.h notebook.h tags.h sourceview.h util.h
-
-# IF YOU PUT ANYTHING HERE IT WILL GO AWAY
+.DEFAULT_GOAL := all
