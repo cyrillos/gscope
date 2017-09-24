@@ -532,6 +532,11 @@ class GScope(Gtk.Window):
                                          (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                                           Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
         cwd = os.getcwd() + '/'
+
+        uiFilter = Gtk.FileFilter().new()
+        uiFilter.set_name("All files")
+        uiFilter.add_pattern('*.*')
+        uiDialog.add_filter(uiFilter)
         uiDialog.set_current_folder(cwd)
         resp = uiDialog.run()
         filename = uiDialog.get_filename()
