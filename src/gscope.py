@@ -467,8 +467,8 @@ class GScope(Gtk.Window):
 
         self.uiNotebookSource.append_page(uiHPan, uiHBox)
         page_nr = self.uiNotebookSource.page_num(uiHPan)
-        self.uiNotebookSource.set_current_page(page_nr)
         self.uiNotebookSource.show_all()
+        self.uiNotebookSource.set_current_page(page_nr)
 
         uiCmdLock.connect("clicked", self.on_uiNotebookLock, uiCmdLock)
         uiCmdClose.connect("clicked", self.on_uiNotebookClose,
@@ -519,6 +519,7 @@ class GScope(Gtk.Window):
         self.uiNotebookCscope.append_page(uiScrolled, uiHBox)
         page_nr = self.uiNotebookSource.page_num(uiHBox)
         self.uiNotebookCscope.show_all()
+        self.uiNotebookCscope.set_current_page(page_nr)
 
         uiCmdLock.connect("clicked", self.on_uiNotebookLock, uiCmdLock)
         uiCmdClose.connect("clicked", self.on_uiNotebookClose,
