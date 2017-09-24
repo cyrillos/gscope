@@ -1,0 +1,57 @@
+#!/usr/bin/python3
+
+import argparse
+import logging
+import pprint
+import json
+import sys
+import os
+import gi
+
+gi.require_version('Gtk', '3.0')
+from gi.repository import GLib, Gio, Gtk, Gdk, Pango
+
+import gscope
+
+v = Gdk.EventType.KEY_PRESS
+
+def get_loglevel(num):
+    lvl_nums = {
+        4: logging.DEBUG,
+        3: logging.DEBUG,
+        2: logging.INFO,
+        1: logging.WARNING,
+        0: logging.ERROR,
+    }
+    if num in lvl_nums:
+        return lvl_nums[num]
+    return logging.ERROR
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--conf', dest = 'conf',
+                    default = 'gscope.conf',
+                    help = 'configuration file in JSON format')
+parser.add_argument('-v', dest = 'verb',
+                    default = 1,
+                    help = 'verbosity level [0-4]')
+args = parser.parse_args()
+
+conf = []
+
+if os.path.isfile(args.conf):
+    with open(args.conf) as f:
+        conf = json.load(f)
+else:
+    with open(gscope.conf_prepend_path('data', 'gscope.json')) as f:
+        conf = json.load(f)
+        gscope.conf_map_paths(conf)
+
+logging.basicConfig(format = '%(asctime)s %(filename)s %(funcName)s %(message)s',
+                    datefmt = '%m/%d/%Y %H:%M:%S',
+                    level = get_loglevel(conf['loglevel']))
+
+logging.debug('Configuration')
+logging.debug(pprint.pformat(conf))
+
+gscope.GScope(conf, logging)
+Gtk.main()

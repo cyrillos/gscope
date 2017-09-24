@@ -1,3 +1,0 @@
-[submodule "scripts/nmk"]
-	path = scripts/nmk
-	url = https://github.com/cyrillos/nmk.git

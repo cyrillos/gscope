@@ -1,0 +1,18 @@
+{
+	"img": {
+		"close": "close.svg",
+		"locked": "locked.svg",
+		"unlocked": "unlocked.svg",
+		"icon": "gscope.svg"
+	},
+	"fonts": {
+		"source": "Droid Sans Mono 13"
+	},
+	"tags": {
+		".*\\.(go)": ["gotags", ["gotags"]],
+		".*\\.([cChH])": ["ctags", ["ctags", "--excmd=n", "-u", "-f", "-"]],
+		"*": ["ctags", ["ctags", "--excmd=n", "-u", "-f", "-"]]
+	},
+	"loglevel": 4,
+	"editor": ["gvim", "-R"]
+}
