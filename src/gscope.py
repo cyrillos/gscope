@@ -303,6 +303,7 @@ class GScope(Gtk.Window):
 
     def lookup_notebook_source_page(self, path):
         for page_nr, v in self.notebook_source_pages.items():
+            self.log.debug("cscope lookup: path %s v %s" % (path, v[0]))
             if v[0] == path:
                 return page_nr, v
         return (None, None)
@@ -529,12 +530,15 @@ class GScope(Gtk.Window):
                                          self, Gtk.FileChooserAction.OPEN,
                                          (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                                           Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-        uiDialog.set_current_folder(os.getcwd())
+        cwd = os.getcwd() + '/'
+        uiDialog.set_current_folder(cwd)
         resp = uiDialog.run()
         filename = uiDialog.get_filename()
         uiDialog.destroy()
 
         if resp == Gtk.ResponseType.OK:
+            if filename.startswith(cwd):
+                filename = filename[len(cwd):]
             self.ui_AddNotebookSourcePage(filename, None)
 
     def on_uiMenuCscope(self, widget, data):
