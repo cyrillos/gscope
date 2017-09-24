@@ -376,10 +376,11 @@ class GScope(Gtk.Window):
             if path != None:
                 uiTextViewBuffer = uiTextViewSrc.get_buffer()
                 start, end = uiTextViewBuffer.get_selection_bounds()
-                cmd = self.conf['editor']
+                cmd = self.conf['editor'][:]
                 cmd.append(path)
                 if start != None:
-                    cmd.append(start.get_line())
+                    cmd.append('+' + str(start.get_line() + 1))
+                self.log.debug("cmd %s" % repr(cmd))
                 subprocess.call(cmd)
 
     def on_uiNotebookLock(self, widget, uiCmdLock):
