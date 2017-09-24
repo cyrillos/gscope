@@ -375,11 +375,17 @@ class GScope(Gtk.Window):
             path, uiStoreTags, uiTreeTags, uiTextViewSrc = self.get_notebook_source_page(page_nr)
             if path != None:
                 uiTextViewBuffer = uiTextViewSrc.get_buffer()
-                start, end = uiTextViewBuffer.get_selection_bounds()
                 cmd = self.conf['editor'][:]
                 cmd.append(path)
-                if start != None:
-                    cmd.append('+' + str(start.get_line() + 1))
+
+                uiIter = uiTextViewBuffer.get_iter_at_mark(uiTextViewBuffer.get_insert())
+                line = uiIter.get_line()
+                col = uiIter.get_line_offset()
+
+                if cmd[0] == "vim" or cmd[0] == "gvim":
+                    cmd.append('+ call cursor(' + str(line + 1)
+                               + ',' + str(col + 1)
+                               + ')')
                 self.log.debug("cmd %s" % repr(cmd))
                 subprocess.call(cmd)
 
