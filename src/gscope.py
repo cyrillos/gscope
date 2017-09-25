@@ -153,12 +153,13 @@ class PyTags:
                 cmd = val
                 break
         self.tag_type = cmd[0]
-        cmd[1].append(filename)
+        cmd = cmd[1][:]
+        cmd.append(filename)
         self.log.debug('cmd %s' % (repr(cmd)))
         #
         # {tagname}<Tab>{tagfile}<Tab>{tagaddress}
         #
-        output = Popen(cmd[1], stdout = PIPE)
+        output = Popen(cmd, stdout = PIPE)
         for line in output.communicate()[0].decode('utf-8').split('\n'):
             if len(line) == 0 or line[0] == '!':
                 continue
