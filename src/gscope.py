@@ -291,7 +291,8 @@ class GScope(Gtk.Window):
         self.uiTopBox.pack_start(self.uiStatusbar, False, True, 0)
         self.add(self.uiTopBox)
 
-        self.uiPannedTop.set_position(int(self.default_height * 0.75))
+        self.uiPannedTop.set_position(int(self.default_height
+                                          * float(self.conf["ui"]["source-view-ratio"])))
 
         self.connect('delete-event', Gtk.main_quit)
         self.show_all()
@@ -438,7 +439,8 @@ class GScope(Gtk.Window):
             uiTreeTags.append_column(uiCol)
 
         uiHPan = Gtk.Paned(orientation = Gtk.Orientation.HORIZONTAL)
-        uiHPan.set_position(int(self.uiPannedTop.get_allocated_width() * 0.3))
+        uiHPan.set_position(int(self.uiPannedTop.get_allocated_width() *
+                                float(self.conf["ui"]["tags-view-ratio"])))
         uiScrolled = Gtk.ScrolledWindow()
         uiScrolled.set_vexpand(True)
         uiScrolled.set_hexpand(True)

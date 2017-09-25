@@ -13,6 +13,10 @@
 		".*\\.([cChH])": ["ctags", ["ctags", "--excmd=n", "-u", "-f", "-"]],
 		"*": ["ctags", ["ctags", "--excmd=n", "-u", "-f", "-"]]
 	},
+	"ui": {
+		"source-view-ratio": 0.65,
+		"tags-view-ratio": 0.20
+	},
 	"loglevel": 4,
 	"editor": ["gvim", "-R"]
 }
