@@ -420,9 +420,10 @@ class GScope(Gtk.Window):
         path, uiStoreTags, uiTreeTags, uiTextViewSrc = self.get_notebook_source_page(child)
         if path != None:
             uiTextViewBuffer = uiTextViewSrc.get_buffer()
-            start, end = uiTextViewBuffer.get_selection_bounds()
-            text = uiTextViewBuffer.get_text(start, end, False)
-            self.ui_AddNotebookCscopePage(text, query_type)
+            if uiTextViewBuffer.get_has_selection():
+                start, end = uiTextViewBuffer.get_selection_bounds()
+                text = uiTextViewBuffer.get_text(start, end, False)
+                self.ui_AddNotebookCscopePage(text, query_type)
 
     def ui_PopupPush(self, uiMenu, uiMenuItem, callback, data):
         uiMenu.insert(uiMenuItem, 0)
