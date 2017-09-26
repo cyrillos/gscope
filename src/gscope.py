@@ -618,7 +618,7 @@ class GScope(Gtk.Window):
         uiTreeCscope.connect("row-activated", self.on_uiTreeCscope, None)
 
         self.uiNotebookCscope.append_page(uiScrolled, uiHBox)
-        page_nr = self.uiNotebookSource.page_num(uiScrolled)
+        page_nr = self.uiNotebookCscope.page_num(uiScrolled)
         self.uiNotebookCscope.show_all()
         self.uiNotebookCscope.set_current_page(page_nr)
 
