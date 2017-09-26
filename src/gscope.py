@@ -234,6 +234,12 @@ class GScope(Gtk.Window):
             if self.project_file != None:
                 self.props.title = self.ui_gen_title()
 
+    def gen_entry_open(self, path):
+        return {'action': 'open', 'path': path}
+
+    def gen_entry_cscope(self, sym, sym_type):
+        return {'action': 'cscope', 'sym': sym, 'type': sym_type}
+
     def __init__(self, conf, log):
         self.conf = conf
         self.log = log
@@ -474,12 +480,10 @@ class GScope(Gtk.Window):
             if nbStore != None:
                 del nbStore[page_nr]
             if action == 'open':
-                self.project_settings['entry'].remove({'action': 'open',
-                                                       'path': adata1})
+                self.project_settings['entry'].remove(self.gen_entry_open(adata1))
             elif action == 'cscope':
-                self.project_settings['entry'].remove({'action': 'cscope',
-                                                       'sym': adata1,
-                                                       'type': adata2})
+                self.project_settings['entry'].remove(self.gen_entry_cscope(adata1,
+                                                                            adata2))
             uiNotebookSource.remove_page(page_nr)
             uiNotebookSource.show_all()
             self.ui_on_modify()
@@ -562,16 +566,12 @@ class GScope(Gtk.Window):
                            (self.uiNotebookSource, uiCmdLock, page_nr,
                             self.notebook_source_pages, 'open', path, None))
 
-        self.project_settings['entry'].append({'action': 'open',
-                                               'path': path})
+        self.project_settings['entry'].append(self.gen_entry_open(path))
         self.notebook_source_pages[page_nr] = [path, uiStoreTags, uiTreeTags, uiTextViewSrc]
 
         self.ui_on_modify()
 
-    def on_uiTreeCscope(self, uiTreeCscope, path, column, ignore):
-        uiModel = uiTreeCscope.get_model()
-        file = uiModel.get_value(uiModel.get_iter(path), 0)
-        line = uiModel.get_value(uiModel.get_iter(path), 1)
+    def on_CscopeSymActivate(self, file, line):
         page_nr, v = self.lookup_notebook_source_page(file)
         if page_nr != None:
             self.uiNotebookSource.set_current_page(page_nr)
@@ -579,12 +579,21 @@ class GScope(Gtk.Window):
         else:
             self.ui_AddNotebookSourcePage(file, int(line))
 
+    def on_uiTreeCscope(self, uiTreeCscope, path, column, ignore):
+        uiModel = uiTreeCscope.get_model()
+        file = uiModel.get_value(uiModel.get_iter(path), 0)
+        line = uiModel.get_value(uiModel.get_iter(path), 1)
+        self.on_CscopeSymActivate(file, line)
+
     def ui_AddNotebookCscopePage(self, sym, sym_type):
         self.log.debug("Lookup for '%s' as '%d:%s'" %
                        (sym, sym_type, get_cscope_param_help(sym_type)))
         cscope = PyCscope(self.log, self.conf, sym, sym_type)
         if len(cscope.results) == 0:
             self.log.debug("No symbols to decode")
+            return
+        elif len(cscope.results) == 1:
+            self.on_CscopeSymActivate(cscope.results[0][0], cscope.results[0][2])
             return
         uiStoreCscope = Gtk.ListStore(str, str, str)
         for i in cscope.results:
@@ -617,9 +626,7 @@ class GScope(Gtk.Window):
                            (self.uiNotebookCscope, uiCmdLock, page_nr,
                             None, 'cscope', sym, sym_type))
 
-        self.project_settings['entry'].append({'action': 'cscope',
-                                               'sym': sym,
-                                               'type': sym_type})
+        self.project_settings['entry'].append(self.gen_entry_cscope(sym, sym_type))
         self.ui_on_modify()
 
     def on_uiMenuFileOpen(self, widget):
