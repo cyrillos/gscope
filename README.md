@@ -48,3 +48,32 @@ editor on `Ctl+e` keypress inside source code view.
 The default settings are shipped with the package itsels but
 may be overriden with `-f path-to-file.json` from command
 line.
+
+# Project format
+
+The current project state can be opened and save via *Project*->*Open*
+or *Project*->*Save* respectively. An appropriate file format is the
+following
+
+```json
+{
+    "version": "0.3",
+    "cwd": "/projects/kernel/linux-ml.git/",
+    "program": "GScope",
+    "entry": [
+        {
+            "action": "open",
+            "path": "kernel/kcmp.c"
+        },
+        {
+            "sym": "get_file_raw_ptr",
+            "action": "cscope",
+            "type": 10
+        },
+        {
+            "action": "open",
+            "path": "fs/eventpoll.c"
+        }
+    ]
+}
+```
