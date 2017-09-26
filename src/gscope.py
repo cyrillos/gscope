@@ -240,7 +240,7 @@ class GScope(Gtk.Window):
     def gen_entry_cscope(self, sym, sym_type):
         return {'action': 'cscope', 'sym': sym, 'type': sym_type}
 
-    def __init__(self, conf, log):
+    def __init__(self, conf, log, args):
         self.conf = conf
         self.log = log
         self.project_file = None
@@ -338,6 +338,17 @@ class GScope(Gtk.Window):
         self.connect('key-press-event', self.on_uiMainKeyPress)
         self.connect('delete-event', Gtk.main_quit)
         self.show_all()
+
+        if args.proj != None and os.path.isfile(args.proj):
+            filename = args.proj
+            if filename.startswith(self.cwd):
+                filename = filename[len(self.cwd):]
+            self.load_project(filename)
+        if args.file != None and os.path.isfile(args.file):
+            filename = args.file
+            if filename.startswith(self.cwd):
+                filename = filename[len(self.cwd):]
+            self.ui_AddNotebookSourcePage(filename, None)
 
     def save_project(self, path):
         self.log.debug(path)

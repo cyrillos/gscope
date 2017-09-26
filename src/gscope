@@ -31,6 +31,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--conf', dest = 'conf',
                     default = 'gscope.conf',
                     help = 'configuration file in JSON format')
+parser.add_argument('--proj', dest = 'proj',
+                    default = 'gscope.json',
+                    help = 'project file in JSON format')
+parser.add_argument('--file', dest = 'file',
+                    help = 'filename to open')
 parser.add_argument('-v', dest = 'verb',
                     default = 1,
                     help = 'verbosity level [0-4]')
@@ -53,5 +58,5 @@ logging.basicConfig(format = '%(asctime)s %(filename)s %(funcName)s %(message)s'
 logging.debug('Configuration')
 logging.debug(pprint.pformat(conf))
 
-gscope.GScope(conf, logging)
+gscope.GScope(conf, logging, args)
 Gtk.main()
