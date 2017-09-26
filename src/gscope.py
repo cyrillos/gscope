@@ -335,6 +335,7 @@ class GScope(Gtk.Window):
         self.uiPannedTop.set_position(int(self.default_height
                                           * float(self.conf["ui"]["source-view-ratio"])))
 
+        self.connect('key-press-event', self.on_uiMainKeyPress)
         self.connect('delete-event', Gtk.main_quit)
         self.show_all()
 
@@ -705,3 +706,31 @@ class GScope(Gtk.Window):
 
     def on_uiMenuFileExit(self, widget):
         Gtk.main_quit()
+
+    def on_uiMainKeyPress(self, widget, event):
+        if event.type != Gdk.EventType.KEY_PRESS:
+            return
+        if (event.state & Gdk.ModifierType.CONTROL_MASK) == 0:
+            return
+        if (event.state & Gdk.ModifierType.SHIFT_MASK) == 0:
+            if event.keyval == Gdk.KEY_r:
+                page_nr = self.uiNotebookSource.get_current_page()
+                if page_nr < 0:
+                    return
+                child = self.uiNotebookSource.get_nth_page(page_nr)
+                self.on_uiTextViewSrcPopUpSelected(None,
+                                                   (CSCOPE_KEY_QRY_REFERENCES,
+                                                    child))
+            elif event.keyval == Gdk.KEY_d:
+                page_nr = self.uiNotebookSource.get_current_page()
+                if page_nr < 0:
+                    return
+                child = self.uiNotebookSource.get_nth_page(page_nr)
+                self.on_uiTextViewSrcPopUpSelected(None,
+                                                   (CSCOPE_KEY_QRY_DEFINITION,
+                                                    child))
+        else:
+            if event.keyval == Gdk.KEY_O:
+                self.log.debug('KEY_O (open project)')
+            elif event.keyval == Gdk.KEY_S:
+                self.log.debug('KEY_S (save project)')
