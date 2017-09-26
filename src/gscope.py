@@ -16,7 +16,7 @@ from gi.repository import GLib, Gio, Gtk, Gdk, Pango
 from subprocess import Popen, PIPE
 
 GSCOPE_ROOT = os.path.abspath(os.path.dirname(__file__))
-CSCOPE_VERSION = '0.3'
+CSCOPE_VERSION = '0.4'
 CSCOPE_NAME = 'GScope'
 
 def conf_prepend_path(prefix, path):
