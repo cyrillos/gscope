@@ -714,22 +714,16 @@ class GScope(Gtk.Window):
         if (event.state & Gdk.ModifierType.CONTROL_MASK) == 0:
             return
         if (event.state & Gdk.ModifierType.SHIFT_MASK) == 0:
-            if event.keyval == Gdk.KEY_r:
+            if event.keyval == Gdk.KEY_r or event.keyval == Gdk.KEY_d:
                 page_nr = self.uiNotebookSource.get_current_page()
                 if page_nr < 0:
                     return
                 child = self.uiNotebookSource.get_nth_page(page_nr)
-                self.on_uiTextViewSrcPopUpSelected(None,
-                                                   (CSCOPE_KEY_QRY_REFERENCES,
-                                                    child))
-            elif event.keyval == Gdk.KEY_d:
-                page_nr = self.uiNotebookSource.get_current_page()
-                if page_nr < 0:
-                    return
-                child = self.uiNotebookSource.get_nth_page(page_nr)
-                self.on_uiTextViewSrcPopUpSelected(None,
-                                                   (CSCOPE_KEY_QRY_DEFINITION,
-                                                    child))
+                if event.keyval == Gdk.KEY_r:
+                    ref = CSCOPE_KEY_QRY_REFERENCES
+                else:
+                    ref = CSCOPE_KEY_QRY_DEFINITION
+                self.on_uiTextViewSrcPopUpSelected(None, (ref, child))
         else:
             if event.keyval == Gdk.KEY_O:
                 self.log.debug('KEY_O (open project)')
