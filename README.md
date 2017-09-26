@@ -77,3 +77,16 @@ following
     ]
 }
 ```
+
+# Keyboard shortcuts
+
+Shortcut | Meaning
+---------|--------
+`Ctl+o`  | Open a file
+`Ctl+q`  | Exit the program
+`Ctl+e`  | Open current source file in editor
+`Ctl+r`  | Do cscope _reference_ request with the text selected
+`Ctl+d`  | Do cscope _definition_ request with the text selected
+`Ctl+O`  | Open a project
+`Ctl+S`  | Save a project
+`Ctl+D`  | Close a project
