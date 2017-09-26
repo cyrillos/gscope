@@ -373,16 +373,16 @@ class GScope(Gtk.Window):
             self.project_modified = False
             self.props.title = self.ui_gen_title()
 
-    def get_notebook_source_page(self, page_nr):
-        if page_nr in self.notebook_source_pages:
-            return self.notebook_source_pages[page_nr]
+    def get_notebook_source_page(self, child):
+        if child in self.notebook_source_pages:
+            return self.notebook_source_pages[child]
         return (None, None, None, None)
 
     def lookup_notebook_source_page(self, path):
-        for page_nr, v in self.notebook_source_pages.items():
+        for child, v in self.notebook_source_pages.items():
             self.log.debug("cscope lookup: path %s v %s" % (path, v[0]))
             if v[0] == path:
-                return page_nr, v
+                return self.uiNotebookSource.page_num(child), v
         return (None, None)
 
     def ui_ScrollTextView(self, uiTextView, line):
@@ -415,9 +415,8 @@ class GScope(Gtk.Window):
         return (uiHBox, uiCmdLock, uiLabel, uiCmdClose)
 
     def on_uiTextViewSrcPopUpSelected(self, widget, data):
-        query_type = data
-        page_nr = self.uiNotebookSource.get_current_page()
-        path, uiStoreTags, uiTreeTags, uiTextViewSrc = self.get_notebook_source_page(page_nr)
+        query_type, child = data
+        path, uiStoreTags, uiTreeTags, uiTextViewSrc = self.get_notebook_source_page(child)
         if path != None:
             uiTextViewBuffer = uiTextViewSrc.get_buffer()
             start, end = uiTextViewBuffer.get_selection_bounds()
@@ -430,26 +429,25 @@ class GScope(Gtk.Window):
             uiMenuItem.connect('activate', callback, data)
         uiMenuItem.show()
 
-    def on_uiTextViewSrcPopUp(self, uiTextView, uiMenu):
+    def on_uiTextViewSrcPopUp(self, uiTextView, uiMenu, data):
         self.ui_PopupPush(uiMenu, Gtk.SeparatorMenuItem.new(),
                           None, None)
         self.ui_PopupPush(uiMenu, Gtk.MenuItem.new_with_label("Calling"),
-                          self.on_uiTextViewSrcPopUpSelected, CSCOPE_KEY_QRY_CALLING_FUNC)
+                          self.on_uiTextViewSrcPopUpSelected, (CSCOPE_KEY_QRY_CALLING_FUNC, data))
         self.ui_PopupPush(uiMenu, Gtk.MenuItem.new_with_label("Called By"),
-                          self.on_uiTextViewSrcPopUpSelected, CSCOPE_KEY_QRY_CALLED_FUNC)
+                          self.on_uiTextViewSrcPopUpSelected, (CSCOPE_KEY_QRY_CALLED_FUNC, data))
         self.ui_PopupPush(uiMenu, Gtk.MenuItem.new_with_label("References"),
-                          self.on_uiTextViewSrcPopUpSelected, CSCOPE_KEY_QRY_REFERENCES)
+                          self.on_uiTextViewSrcPopUpSelected, (CSCOPE_KEY_QRY_REFERENCES, data))
         self.ui_PopupPush(uiMenu, Gtk.MenuItem.new_with_label("Definition"),
-                          self.on_uiTextViewSrcPopUpSelected, CSCOPE_KEY_QRY_DEFINITION)
+                          self.on_uiTextViewSrcPopUpSelected, (CSCOPE_KEY_QRY_DEFINITION, data))
 
-    def on_uiTextViewSrcKeyPress(self, widget, event):
+    def on_uiTextViewSrcKeyPress(self, widget, event, data):
         if event.type != Gdk.EventType.KEY_PRESS:
             return
         if (event.state & Gdk.ModifierType.CONTROL_MASK) == 0:
             return
         if event.keyval == Gdk.KEY_e:
-            page_nr = self.uiNotebookSource.get_current_page()
-            path, uiStoreTags, uiTreeTags, uiTextViewSrc = self.get_notebook_source_page(page_nr)
+            path, uiStoreTags, uiTreeTags, uiTextViewSrc = self.get_notebook_source_page(data)
             if path != None:
                 uiTextViewBuffer = uiTextViewSrc.get_buffer()
                 cmd = self.conf['editor'][:]
@@ -475,15 +473,16 @@ class GScope(Gtk.Window):
             uiCmdLock.set_image(uiCmdLock.priv_images[1])
 
     def on_uiNotebookClose(self, widget, data):
-        uiNotebookSource, uiCmdLock, page_nr, nbStore, action, adata1, adata2 = data
+        uiNotebookSource, uiCmdLock, child, nbStore, action, adata1, adata2 = data
         if uiCmdLock.priv_locked == False:
             if nbStore != None:
-                del nbStore[page_nr]
+                del nbStore[child]
             if action == 'open':
                 self.project_settings['entry'].remove(self.gen_entry_open(adata1))
             elif action == 'cscope':
                 self.project_settings['entry'].remove(self.gen_entry_cscope(adata1,
                                                                             adata2))
+            page_nr = uiNotebookSource.page_num(child)
             uiNotebookSource.remove_page(page_nr)
             uiNotebookSource.show_all()
             self.ui_on_modify()
@@ -538,8 +537,6 @@ class GScope(Gtk.Window):
         uiTextViewSrc.props.bottom_margin = 10
         uiTextViewSrc.modify_font(Pango.FontDescription(self.conf["fonts"]["source"]))
 
-        uiTextViewSrc.connect('populate-popup', self.on_uiTextViewSrcPopUp)
-        uiTextViewSrc.connect('key-press-event', self.on_uiTextViewSrcKeyPress)
         uiTextViewBuffer = uiTextViewSrc.get_buffer()
         with open(path, 'r') as f:
             uiTextViewBuffer.set_text(f.read())
@@ -563,11 +560,15 @@ class GScope(Gtk.Window):
 
         uiCmdLock.connect("clicked", self.on_uiNotebookLock, uiCmdLock)
         uiCmdClose.connect("clicked", self.on_uiNotebookClose,
-                           (self.uiNotebookSource, uiCmdLock, page_nr,
+                           (self.uiNotebookSource, uiCmdLock, uiHPan,
                             self.notebook_source_pages, 'open', path, None))
 
+        uiTextViewSrc.connect('populate-popup', self.on_uiTextViewSrcPopUp, uiHPan)
+        uiTextViewSrc.connect('key-press-event', self.on_uiTextViewSrcKeyPress, uiHPan)
+
         self.project_settings['entry'].append(self.gen_entry_open(path))
-        self.notebook_source_pages[page_nr] = [path, uiStoreTags, uiTreeTags, uiTextViewSrc]
+        self.notebook_source_pages[uiHPan] = [path, uiStoreTags,
+                                              uiTreeTags, uiTextViewSrc]
 
         self.ui_on_modify()
 
@@ -617,13 +618,13 @@ class GScope(Gtk.Window):
         uiTreeCscope.connect("row-activated", self.on_uiTreeCscope, None)
 
         self.uiNotebookCscope.append_page(uiScrolled, uiHBox)
-        page_nr = self.uiNotebookSource.page_num(uiHBox)
+        page_nr = self.uiNotebookSource.page_num(uiScrolled)
         self.uiNotebookCscope.show_all()
         self.uiNotebookCscope.set_current_page(page_nr)
 
         uiCmdLock.connect("clicked", self.on_uiNotebookLock, uiCmdLock)
         uiCmdClose.connect("clicked", self.on_uiNotebookClose,
-                           (self.uiNotebookCscope, uiCmdLock, page_nr,
+                           (self.uiNotebookCscope, uiCmdLock, uiScrolled,
                             None, 'cscope', sym, sym_type))
 
         self.project_settings['entry'].append(self.gen_entry_cscope(sym, sym_type))
