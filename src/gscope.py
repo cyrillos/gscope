@@ -16,6 +16,8 @@ from gi.repository import GLib, Gio, Gtk, Gdk, Pango
 from subprocess import Popen, PIPE
 
 GSCOPE_ROOT = os.path.abspath(os.path.dirname(__file__))
+CSCOPE_VERSION = '0.2'
+CSCOPE_NAME = 'GScope'
 
 def conf_prepend_path(prefix, path):
     return os.path.join(GSCOPE_ROOT, prefix, path)
@@ -203,7 +205,9 @@ UI_INFO = '''
             <menuitem action='FileExit' />
         </menu>
         <menu action='ProjectMenu'>
-            <menuitem action='ProjectSettings' />
+            <menuitem action='ProjectOpen' />
+            <menuitem action='ProjectSave' />
+            <menuitem action='ProjectClose' />
         </menu>
         <menu action='CScopeMenu'>
             <menuitem action='CScopeDefinition' />
@@ -216,10 +220,32 @@ UI_INFO = '''
 '''
 
 class GScope(Gtk.Window):
+    def ui_gen_title(self):
+        title = CSCOPE_NAME + '-' + CSCOPE_VERSION
+        if self.project_file != None:
+            title += ': ' + self.project_file
+            if self.project_modified == True:
+                title += ' *'
+        return title
+
+    def ui_on_modify(self):
+        if self.project_modified == False:
+            self.project_modified = True
+            if self.project_file != None:
+                self.props.title = self.ui_gen_title()
+
     def __init__(self, conf, log):
         self.conf = conf
         self.log = log
-        self.uiWindow = Gtk.Window.__init__(self, title = 'GScope')
+        self.project_file = None
+        self.project_modified = False
+        self.project_settings = { }
+        self.cwd = os.getcwd() + '/'
+        self.project_settings['program'] = CSCOPE_NAME
+        self.project_settings['version'] = CSCOPE_VERSION
+        self.project_settings['cwd'] = self.cwd
+        self.project_settings['entry'] = [ ]
+        Gtk.Window.__init__(self, title = self.ui_gen_title())
         self.uiScreen = Gdk.Screen.get_default()
         self.default_width = int(self.uiScreen.get_width() * 0.75)
         self.default_height = int(self.uiScreen.get_height() * 0.75)
@@ -240,9 +266,17 @@ class GScope(Gtk.Window):
 
         uiActionGroup.add_action(Gtk.Action("ProjectMenu", "Project", None, None))
 
-        uiActionProjectSettings = Gtk.Action("ProjectSettings", "Settings", None, None)
-        #uiActionProjectSettings.connect("activate", self.on_project_settings)
-        uiActionGroup.add_action_with_accel(uiActionProjectSettings, None)
+        uiActionProjectOpen = Gtk.Action("ProjectOpen", "Open", None, None)
+        uiActionProjectOpen.connect("activate", self.on_uiMenuProjectOpen)
+        uiActionGroup.add_action_with_accel(uiActionProjectOpen, None)
+
+        uiActionProjectSave = Gtk.Action("ProjectSave", "Save", None, None)
+        uiActionProjectSave.connect("activate", self.on_uiMenuProjectSave)
+        uiActionGroup.add_action_with_accel(uiActionProjectSave, None)
+
+        uiActionProjectClose = Gtk.Action("ProjectClose", "Close", None, None)
+        uiActionProjectClose.connect("activate", self.on_uiMenuProjectClose)
+        uiActionGroup.add_action_with_accel(uiActionProjectClose, None)
 
         uiActionGroup.add_action(Gtk.Action("CScopeMenu", "CScope", None, None))
 
@@ -297,6 +331,41 @@ class GScope(Gtk.Window):
 
         self.connect('delete-event', Gtk.main_quit)
         self.show_all()
+
+    def save_project(self, path):
+        self.log.debug(path)
+        with open(path, 'w') as f:
+            json.dump(self.project_settings, f, indent = 4)
+        self.project_modified = False
+        self.project_file = path
+        self.props.title = self.ui_gen_title()
+
+    def load_project(self, path):
+        self.log.debug(path)
+        self.project_file = path
+        with open(path, 'r') as f:
+            proj = json.load(f)
+            self.log.debug(pprint.pformat(proj))
+            if 'cwd' in proj:
+                self.cwd = proj['cwd']
+                self.log.debug("change cwd to %s" % self.cwd)
+                os.chdir(self.cwd)
+            for key, val in proj.items():
+                self.log.debug("key %s val %s" % (repr(key), repr(val)))
+                if key == 'entry':
+                    for entry in val:
+                        self.log.debug("entry: %s" % pprint.pformat(entry))
+                        if 'action' not in entry:
+                            continue
+                        if entry['action'] == 'open' and \
+                                'path' in entry:
+                            self.ui_AddNotebookSourcePage(entry['path'], None)
+                        elif entry['action'] == 'cscope':
+                            if 'sym' in entry and 'type' in entry:
+                                self.ui_AddNotebookCscopePage(entry['sym'],
+                                                              int(entry['type']))
+            self.project_modified = False
+            self.props.title = self.ui_gen_title()
 
     def get_notebook_source_page(self, page_nr):
         if page_nr in self.notebook_source_pages:
@@ -400,12 +469,20 @@ class GScope(Gtk.Window):
             uiCmdLock.set_image(uiCmdLock.priv_images[1])
 
     def on_uiNotebookClose(self, widget, data):
-        uiNotebookSource, uiCmdLock, page_nr, nbStore = data
+        uiNotebookSource, uiCmdLock, page_nr, nbStore, action, adata1, adata2 = data
         if uiCmdLock.priv_locked == False:
             if nbStore != None:
                 del nbStore[page_nr]
+            if action == 'open':
+                self.project_settings['entry'].remove({'action': 'open',
+                                                       'path': adata1})
+            elif action == 'cscope':
+                self.project_settings['entry'].remove({'action': 'cscope',
+                                                       'sym': adata1,
+                                                       'type': adata2})
             uiNotebookSource.remove_page(page_nr)
             uiNotebookSource.show_all()
+            self.ui_on_modify()
 
     def on_uiSourceTreeTags(self, uiTreeTags, path, column, uiTextViewSrc):
         uiModel = uiTreeTags.get_model()
@@ -483,9 +560,13 @@ class GScope(Gtk.Window):
         uiCmdLock.connect("clicked", self.on_uiNotebookLock, uiCmdLock)
         uiCmdClose.connect("clicked", self.on_uiNotebookClose,
                            (self.uiNotebookSource, uiCmdLock, page_nr,
-                            self.notebook_source_pages))
+                            self.notebook_source_pages, 'open', path, None))
 
+        self.project_settings['entry'].append({'action': 'open',
+                                               'path': path})
         self.notebook_source_pages[page_nr] = [path, uiStoreTags, uiTreeTags, uiTextViewSrc]
+
+        self.ui_on_modify()
 
     def on_uiTreeCscope(self, uiTreeCscope, path, column, ignore):
         uiModel = uiTreeCscope.get_model()
@@ -534,27 +615,30 @@ class GScope(Gtk.Window):
         uiCmdLock.connect("clicked", self.on_uiNotebookLock, uiCmdLock)
         uiCmdClose.connect("clicked", self.on_uiNotebookClose,
                            (self.uiNotebookCscope, uiCmdLock, page_nr,
-                            None))
+                            None, 'cscope', sym, sym_type))
+
+        self.project_settings['entry'].append({'action': 'cscope',
+                                               'sym': sym,
+                                               'type': sym_type})
+        self.ui_on_modify()
 
     def on_uiMenuFileOpen(self, widget):
         uiDialog = Gtk.FileChooserDialog("Choose a file",
                                          self, Gtk.FileChooserAction.OPEN,
                                          (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
                                           Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-        cwd = os.getcwd() + '/'
-
         uiFilter = Gtk.FileFilter().new()
         uiFilter.set_name("All files")
         uiFilter.add_pattern('*.*')
         uiDialog.add_filter(uiFilter)
-        uiDialog.set_current_folder(cwd)
+        uiDialog.set_current_folder(self.cwd)
         resp = uiDialog.run()
         filename = uiDialog.get_filename()
         uiDialog.destroy()
 
         if resp == Gtk.ResponseType.OK:
-            if filename.startswith(cwd):
-                filename = filename[len(cwd):]
+            if filename.startswith(self.cwd):
+                filename = filename[len(self.cwd):]
             self.ui_AddNotebookSourcePage(filename, None)
 
     def on_uiMenuCscope(self, widget, data):
@@ -562,6 +646,54 @@ class GScope(Gtk.Window):
         sym = ui_InputDialog(self, "Enter name for lookup", title)
         if sym != None:
             self.ui_AddNotebookCscopePage(sym, query_type)
+
+    def on_uiMenuProjectSave(self, widget):
+        if self.project_file == None:
+            uiDialog = Gtk.FileChooserDialog("Choose a file",
+                                             self, Gtk.FileChooserAction.SAVE,
+                                             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                              Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+            uiFilter = Gtk.FileFilter().new()
+            uiFilter.set_name("JSON")
+            uiFilter.add_pattern('*.json')
+            uiDialog.add_filter(uiFilter)
+            uiDialog.set_current_folder(self.cwd)
+            resp = uiDialog.run()
+            filename = uiDialog.get_filename()
+            uiDialog.destroy()
+            if resp == Gtk.ResponseType.OK:
+                if filename.startswith(self.cwd):
+                    filename = filename[len(self.cwd):]
+                if not filename.endswith('.json'):
+                    filename += '.json'
+                self.save_project(filename)
+        else:
+            self.save_project(self.project_file)
+
+    def on_uiMenuProjectClose(self, widget):
+        if self.project_file == None:
+            return
+        self.project_file = None
+        self.project_modified = False
+        self.props.title = self.ui_gen_title()
+
+    def on_uiMenuProjectOpen(self, widget):
+        uiDialog = Gtk.FileChooserDialog("Choose a file",
+                                         self, Gtk.FileChooserAction.OPEN,
+                                         (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                          Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+        uiFilter = Gtk.FileFilter().new()
+        uiFilter.set_name("JSON")
+        uiFilter.add_pattern('*.json')
+        uiDialog.add_filter(uiFilter)
+        uiDialog.set_current_folder(self.cwd)
+        resp = uiDialog.run()
+        filename = uiDialog.get_filename()
+        uiDialog.destroy()
+        if resp == Gtk.ResponseType.OK:
+            if filename.startswith(self.cwd):
+                filename = filename[len(self.cwd):]
+            self.load_project(filename)
 
     def on_uiMenuFileExit(self, widget):
         Gtk.main_quit()
