@@ -726,6 +726,8 @@ class GScope(Gtk.Window):
                 self.on_uiTextViewSrcPopUpSelected(None, (ref, child))
         else:
             if event.keyval == Gdk.KEY_O:
-                self.log.debug('KEY_O (open project)')
+                self.on_uiMenuProjectOpen(self)
             elif event.keyval == Gdk.KEY_S:
-                self.log.debug('KEY_S (save project)')
+                self.on_uiMenuProjectSave(self)
+            elif event.keyval == Gdk.KEY_D:
+                self.on_uiMenuProjectClose(self)
