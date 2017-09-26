@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name = 'gscope',
-      version = '0.4',
+      version = '0.5',
       description = 'Simple GTK forntend for cscope',
       author = 'Cyrill Gorcunov',
       author_email = 'gorcunov@gmail.com',
