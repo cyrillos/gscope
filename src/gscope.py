@@ -240,6 +240,11 @@ class GScope(Gtk.Window):
     def gen_entry_cscope(self, sym, sym_type):
         return {'action': 'cscope', 'sym': sym, 'type': sym_type}
 
+    def strip_cwd(self, path):
+        if path != None and path.startswith(self.cwd):
+            return path[len(self.cwd):]
+        return path
+
     def __init__(self, conf, log, args):
         self.conf = conf
         self.log = log
@@ -339,16 +344,10 @@ class GScope(Gtk.Window):
         self.connect('delete-event', Gtk.main_quit)
         self.show_all()
 
-        if args.proj != None and os.path.isfile(args.proj):
-            filename = args.proj
-            if filename.startswith(self.cwd):
-                filename = filename[len(self.cwd):]
-            self.load_project(filename)
         if args.file != None and os.path.isfile(args.file):
-            filename = args.file
-            if filename.startswith(self.cwd):
-                filename = filename[len(self.cwd):]
-            self.ui_AddNotebookSourcePage(filename, None)
+            self.ui_AddNotebookSourcePage(self.strip_cwd(args.file), None)
+        if args.proj != None and os.path.isfile(args.proj):
+            self.load_project(self.strip_cwd(args.proj))
 
     def save_project(self, path):
         self.log.debug(path)
@@ -658,9 +657,7 @@ class GScope(Gtk.Window):
         uiDialog.destroy()
 
         if resp == Gtk.ResponseType.OK:
-            if filename.startswith(self.cwd):
-                filename = filename[len(self.cwd):]
-            self.ui_AddNotebookSourcePage(filename, None)
+            self.ui_AddNotebookSourcePage(self.strip_cwd(filename), None)
 
     def on_uiMenuCscope(self, widget, data):
         title, query_type = data
@@ -683,8 +680,7 @@ class GScope(Gtk.Window):
             filename = uiDialog.get_filename()
             uiDialog.destroy()
             if resp == Gtk.ResponseType.OK:
-                if filename.startswith(self.cwd):
-                    filename = filename[len(self.cwd):]
+                filename = self.strip_cwd(filename)
                 if not filename.endswith('.json'):
                     filename += '.json'
                 self.save_project(filename)
@@ -712,9 +708,7 @@ class GScope(Gtk.Window):
         filename = uiDialog.get_filename()
         uiDialog.destroy()
         if resp == Gtk.ResponseType.OK:
-            if filename.startswith(self.cwd):
-                filename = filename[len(self.cwd):]
-            self.load_project(filename)
+            self.load_project(self.strip_cwd(filename))
 
     def on_uiMenuFileExit(self, widget):
         Gtk.main_quit()
