@@ -652,12 +652,15 @@ class GScope(Gtk.Window):
         uiFilter.add_pattern('*.*')
         uiDialog.add_filter(uiFilter)
         uiDialog.set_current_folder(self.cwd)
+        uiDialog.props.select_multiple = True
+        uiDialog.props.show_hidden = False
         resp = uiDialog.run()
-        filename = uiDialog.get_filename()
+        filenames = uiDialog.get_filenames()
         uiDialog.destroy()
 
         if resp == Gtk.ResponseType.OK:
-            self.ui_AddNotebookSourcePage(self.strip_cwd(filename), None)
+            for filename in filenames:
+                self.ui_AddNotebookSourcePage(self.strip_cwd(filename), None)
 
     def on_uiMenuCscope(self, widget, data):
         title, query_type = data
@@ -676,6 +679,8 @@ class GScope(Gtk.Window):
             uiFilter.add_pattern('*.json')
             uiDialog.add_filter(uiFilter)
             uiDialog.set_current_folder(self.cwd)
+            uiDialog.props.select_multiple = False
+            uiDialog.props.show_hidden = False
             resp = uiDialog.run()
             filename = uiDialog.get_filename()
             uiDialog.destroy()
@@ -704,6 +709,8 @@ class GScope(Gtk.Window):
         uiFilter.add_pattern('*.json')
         uiDialog.add_filter(uiFilter)
         uiDialog.set_current_folder(self.cwd)
+        uiDialog.props.select_multiple = False
+        uiDialog.props.show_hidden = False
         resp = uiDialog.run()
         filename = uiDialog.get_filename()
         uiDialog.destroy()
