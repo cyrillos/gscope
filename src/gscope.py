@@ -324,11 +324,13 @@ class GScope(Gtk.Window):
         self.uiTopBox.pack_start(self.uiPannedTop, True, True, 0)
 
         self.uiNotebookSource = Gtk.Notebook()
+        self.uiNotebookSource.props.scrollable = True
         self.uiPannedTop.pack1(self.uiNotebookSource, True, False)
 
         self.notebook_source_pages = { }
 
         self.uiNotebookCscope = Gtk.Notebook()
+        self.uiNotebookCscope.props.scrollable = True
         self.uiPannedTop.pack2(self.uiNotebookCscope, True, False)
 
         self.uiStatusbar = Gtk.Statusbar()
