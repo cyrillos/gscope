@@ -532,6 +532,7 @@ class GScope(Gtk.Window):
             uiCol.set_resizable(True)
             uiCol.set_sort_column_id(i)
             uiTreeTags.append_column(uiCol)
+        uiTreeTags.props.expand = True
 
         uiHPan = Gtk.Paned(orientation = Gtk.Orientation.HORIZONTAL)
         uiHPan.set_position(int(self.uiPannedTop.get_allocated_width() *
@@ -539,7 +540,24 @@ class GScope(Gtk.Window):
         uiScrolled = Gtk.ScrolledWindow()
         uiScrolled.set_vexpand(True)
         uiScrolled.set_hexpand(True)
-        uiScrolled.add(uiTreeTags)
+
+        #
+        # For some reason adding TreeView into
+        # ScrollWindow cause Gtk-WARNING **:
+        # Allocating size to gscope+GScope 0x56062207a540 without
+        # calling gtk_widget_get_preferred_width/height()
+        #
+        # The anser was on some dev mailing list:
+        # a hint to use Grid element.
+        #
+        # https://stackoverflow.com/questions/46253472/ \
+        # allocating-size-to-gtk-warning-when-using-gtk-treeview-inside-gtk-scrolledw
+        #
+        uiGrid = Gtk.Grid()
+        uiGrid.attach(uiTreeTags, 0, 0, 1, 1)
+        uiGrid.props.expand = True
+        uiScrolled.add(uiGrid)
+
         uiHPan.pack1(uiScrolled, True, False)
 
         uiTextViewSrc = Gtk.TextView()
@@ -620,11 +638,15 @@ class GScope(Gtk.Window):
             uiCol.set_resizable(True)
             uiCol.set_sort_column_id(i)
             uiTreeCscope.append_column(uiCol)
+        uiTreeCscope.props.expand = True
 
         uiScrolled = Gtk.ScrolledWindow()
         uiScrolled.set_hexpand(True)
         uiScrolled.set_vexpand(True)
-        uiScrolled.add(uiTreeCscope)
+        uiGrid = Gtk.Grid()
+        uiGrid.attach(uiTreeCscope, 0, 0, 1, 1)
+        uiGrid.props.expand = True
+        uiScrolled.add(uiGrid)
 
         uiHBox, uiCmdLock, uiLabel, uiCmdClose = self.ui_GenNotebookTitle(sym)
         uiHBox.show_all()
